@@ -1,0 +1,195 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <title>Document</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400&display=swap');
+
+            .room {
+                width: 100px;
+                height: 100px;
+                border: 3px solid rgba(0, 0, 0, 0.1);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                text-transform: uppercase;
+                font-weight: 300;
+                font-size: 12px;
+                color: rgba(0, 0, 0, 0.9);
+                background: white;
+                position: absolute;
+                overflow: hidden;
+                box-shadow: inset 0px 0px 30px rgba(130, 50, 9, 0.4);
+                transition: 0.5s box-shadow linear, 0.5s background linear;
+                -webkit-app-region: no-drag;
+            }
+            .room:after {
+                position: absolute;
+                left: 0;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                content: '';
+                background: rgba(0, 0, 0, 0.1);
+                transition: 0.5s background linear;
+            }
+            .room.dark:after {
+                background: rgba(0, 0, 0, 0.2);
+            }
+            .room.dark {
+                box-shadow: inset 0px 0px 30px rgba(0, 0, 0, 0.3);
+                background: rgb(230, 230, 230);
+            }
+            html {
+                height: 100%;
+            }
+            body {
+                background-size: 100%;
+                font-family: 'Roboto', sans-serif;
+                background: linear-gradient(to top left, #c9d6ff, #e2e2e2);
+            }
+            .bedroom {
+                left: 10px;
+                top: 67px;
+                height: 120px;
+                border-top-left-radius: 20px;
+                border-bottom-left-radius: 20px;
+            }
+            .livingroom {
+                left: 107px;
+                top: 67px;
+                height: 120px;
+            }
+            .hall {
+                width: 60px;
+                height: 60px;
+                left: 169px;
+                top: 10px;
+                border-top-left-radius: 20px;
+            }
+            .kitchen.kitchen-main {
+                width: 80px;
+                left: 204px;
+                top: 104px;
+                height: 83px;
+                border-bottom-right-radius: 20px;
+            }
+            .kitchen.kitchen-top {
+                width: 25px;
+                left: 204px;
+                top: 67px;
+                border-bottom: 0;
+                height: 40px;
+            }
+
+            .bathroom {
+                left: 226px;
+                top: 67px;
+                height: 40px;
+                width: 58px;
+            }
+            .toilet {
+                left: 226px;
+                top: 40px;
+                height: 30px;
+                width: 58px;
+                border-top-right-radius: 10px;
+            }
+            .storage {
+                left: 226px;
+                top: 0px;
+                height: 43px;
+                width: 30px;
+                border-top-right-radius: 10px;
+                border-top-left-radius: 10px;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+            html {
+                height: 100%;
+            }
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            #room-layout {
+                position: relative;
+                left: 10px;
+                top: 10px;
+                width: 292px;
+                height: 190px;
+            }
+        </style>
+        <script>
+            const groupToRoomClass = {
+                "Bedroom": "bedroom",
+                "Kitchen": "kitchen",
+                "Living room": "livingroom",
+                "TRADFRI group 6": "hall"
+            };
+            const getStatus = async () => {
+                const response = await fetch('/groups');
+                const data = await response.json();
+                for (const group of data) {
+                    const className = groupToRoomClass[group.name];
+                    const anyLightsOn = group.lights.some(light => light.onOff)
+                    const roomElements = Array.from(document.querySelectorAll('.room.'+className));
+                    roomElements.forEach(subroom => subroom.classList.add('clickable'))
+                    roomElements.forEach(subroom => subroom.meta = {
+                        groupName: group.name
+                    })
+                    if (anyLightsOn) {
+                        roomElements.forEach(subroom => subroom.classList.remove('dark'))
+                        roomElements.forEach(subroom => subroom.style["z-index"] = 100)
+                    } else {
+                        roomElements.forEach(subroom => subroom.classList.add('dark'))
+                        roomElements.forEach(subroom => subroom.style["z-index"] = 99)
+                    }
+                }
+                console.log(data);
+            }
+            getStatus();
+        </script>
+    </head>
+    <body style="-webkit-app-region: drag">
+        <div id="room-layout">
+            <div class="bedroom room wood">
+                Bedroom
+            </div>
+            <div class="livingroom room wood">
+                Living room
+            </div>
+            <div class="hall room carpet">
+                Hall
+            </div>
+            <div class="kitchen kitchen-main room tiles">
+                Kitchen
+            </div>
+            <div class="kitchen kitchen-top room tiles"></div>
+            <div class="bathroom room tiles"></div>
+            <div class="toilet room tiles"></div>
+            <div class="storage room carpet"></div>
+        </div>
+        <script>
+            Array.from(document.querySelectorAll('.room')).forEach(subroom => {
+                subroom.addEventListener('click', () => {
+                    if (subroom.classList.contains('clickable')) {
+                        if (subroom.classList.contains('dark')) {
+                            fetch('/group/'+subroom.meta.groupName+'/'+'on');
+                        } else {
+                            fetch('/group/'+subroom.meta.groupName+'/'+'off');
+                        }
+                        const className = groupToRoomClass[subroom.meta.groupName];
+                        const roomElements = Array.from(document.querySelectorAll('.room.'+className));
+                        roomElements.forEach(subroom => subroom.classList.toggle('dark'))
+                    }
+                })
+            })
+        </script>
+    </body>
+</html>
